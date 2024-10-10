@@ -1,0 +1,92 @@
+services:
+  frontend:
+    build:
+      context: ./front-end-todo
+    ports:
+      - "5001:5001"
+    develop:
+      watch:
+        - action: sync
+          path: ./front-end-todo
+          target: /src
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: .
+    networks:
+      - frontback-network
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./back-end-todo
+    ports:
+      - "4000:3000"
+    environment:
+      DATABASE_HOST: db
+      DATABASE_USER: root
+      DATABASE_PASSWORD: blablabla
+    develop:
+      watch:
+        - action: sync
+          path: ./back-end-todo
+          target: /src
+          ignore:
+            - node_modules/
+    networks:
+      - frontback-network
+      - backbdd-network
+    depends_on:
+      - db
+    secrets:
+      - db_root_password
+      - db_user
+
+  db:
+    image: mariadb
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: always
+    ports:
+      - "3306:3306"
+    networks:
+      - backbdd-network
+    environment:
+      MYSQL_USER: root
+      MYSQL_ROOT_PASSWORD: blablabla
+      MYSQL_DATABASE: tododb
+    secrets:
+      - db_root_password
+      - db_user
+      - db_database
+
+  phpmyadmin:
+    image: phpmyadmin
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: blablabla
+    networks:
+      - backbdd-network
+    depends_on:
+      - db
+    secrets:
+      - db_root_password
+
+secrets:
+  db_root_password:
+    file: ./secret_file/password_mysql.txt
+  db_user:
+    file: ./secret_file/user_mysql.txt
+  db_database:
+    file: ./secret_file/database_mysql.txt
+
+volumes:
+  db_data:
+
+networks:
+  backbdd-network:
+  frontback-network:
